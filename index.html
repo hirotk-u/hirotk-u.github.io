@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>伊香保温泉散策</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="game-shell">
+      <aside class="control-panel card">
+        <h2>操作</h2>
+        <div class="dpad">
+          <button class="dpad-button dpad-up" data-dir="up" aria-label="上へ移動">↑</button>
+          <div class="dpad-middle">
+            <button class="dpad-button" data-dir="left" aria-label="左へ移動">←</button>
+            <button class="dpad-button" data-dir="down" aria-label="下へ移動">↓</button>
+            <button class="dpad-button" data-dir="right" aria-label="右へ移動">→</button>
+          </div>
+        </div>
+
+        <div class="quick-actions">
+          <button id="look-button" class="action-button">見る</button>
+          <button id="reset-button" class="action-button secondary">やり直し</button>
+        </div>
+
+        <div class="status-box">
+          <p class="label">現在地</p>
+          <strong id="current-location">渋川駅</strong>
+          <p class="label">目的地</p>
+          <strong>旅館さくらい</strong>
+        </div>
+      </aside>
+
+      <main class="field-panel card">
+        <div class="field-header">
+          <div>
+            <p class="eyebrow">伊香保温泉散策</p>
+            <h1>伊香保温泉散策</h1>
+          </div>
+          <p id="mode-label">渋川駅から旅館さくらいへ</p>
+        </div>
+
+        <div class="map-viewport">
+          <div id="field-map" class="field-map" role="grid" aria-label="伊香保温泉のフィールドマップ"></div>
+        </div>
+        <p class="map-caption"><span class="map-caption-swatch"></span>草原の小道を進んで、伊香保の名所をめぐろう</p>
+
+        <div id="story-box" class="story-box"></div>
+      </main>
+
+      <aside class="log-panel card">
+        <h2>旅の記録</h2>
+        <ul id="log-list"></ul>
+      </aside>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
