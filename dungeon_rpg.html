@@ -1,0 +1,1088 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#090d13">
+  <meta name="description" content="スマホでも遊べる、タイミングバトル搭載の3DダンジョンRPG。">
+  <title>深淵の回廊 — DUNGEON RPG</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      background: #090d13;
+      color: #eee8d8;
+      font-synthesis: none;
+      --gold: #d7b76d;
+      --muted: #9c9b96;
+      --panel: #151a20;
+      --line: #45413a;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      margin: 0;
+      overflow-x: hidden;
+      background:
+        radial-gradient(ellipse at 50% 0%, #20252b 0, transparent 56%),
+        #090d13;
+    }
+    button { font: inherit; }
+    .game-shell {
+      width: min(100%, 980px);
+      min-height: 100vh;
+      min-height: 100dvh;
+      margin: 0 auto;
+      padding: 18px 22px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .topbar, .statusbar, .messagebar {
+      border: 1px solid var(--line);
+      background: linear-gradient(110deg, #1a1d21, #10151b);
+      box-shadow: 0 8px 24px #0005;
+    }
+    .topbar {
+      min-height: 56px;
+      padding: 9px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .brand {
+      color: var(--gold);
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: .16em;
+    }
+    .floor-label {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: .12em;
+    }
+    .statusbar {
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      font-size: 13px;
+    }
+    .stat { display: flex; align-items: center; gap: 8px; }
+    .stat strong { color: #fff3d4; font-variant-numeric: tabular-nums; }
+    .hp-track {
+      width: 112px;
+      height: 7px;
+      overflow: hidden;
+      border: 1px solid #554441;
+      background: #2a1718;
+    }
+    .hp-fill { height: 100%; background: linear-gradient(90deg, #9f3434, #e3654e); transition: width .2s; }
+    .scene-wrap {
+      position: relative;
+      flex: 1;
+      min-height: 300px;
+      overflow: hidden;
+      border: 2px solid #62533d;
+      background: #080b10;
+      box-shadow: 0 12px 40px #0008, inset 0 0 30px #000;
+    }
+    #scene {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 300px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    .reticle {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 9px;
+      height: 9px;
+      transform: translate(-50%, -50%);
+      border: 1px solid #f3dfaa99;
+      pointer-events: none;
+    }
+    .scene-vignette {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(ellipse, transparent 38%, #05070a66 100%);
+    }
+    .minimap {
+      position: absolute;
+      z-index: 2;
+      top: 12px;
+      right: 12px;
+      width: 166px;
+      padding: 7px;
+      border: 1px solid #bba06b99;
+      background: #0c1010d9;
+      box-shadow: 0 3px 14px #0009;
+      pointer-events: none;
+    }
+    .minimap-label {
+      margin: 0 0 5px;
+      color: #d7c89f;
+      font-size: 9px;
+      letter-spacing: .18em;
+    }
+    #minimapCanvas {
+      display: block;
+      width: 150px;
+      height: 150px;
+      image-rendering: pixelated;
+    }
+    .messagebar {
+      min-height: 42px;
+      padding: 10px 14px;
+      color: #d5c9a9;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .messagebar span { color: var(--gold); }
+    .lower-ui {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 20px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .keyboard-hint { margin-left: auto; line-height: 1.7; }
+    kbd {
+      padding: 2px 5px;
+      border: 1px solid #514d46;
+      border-radius: 3px;
+      color: #e8dfcd;
+      background: #1c2025;
+    }
+    .controller {
+      order: -1;
+      display: flex;
+      align-items: center;
+      gap: 17px;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 43px);
+      grid-template-rows: repeat(3, 39px);
+      gap: 3px;
+    }
+    .control {
+      border: 1px solid #60594e;
+      color: #e8ddc4;
+      background: linear-gradient(145deg, #383a3b, #1a1d20);
+      box-shadow: 0 3px 0 #090b0d, inset 0 1px #ffffff12;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .control:active, .control.pressed {
+      transform: translateY(2px);
+      background: #63583e;
+      box-shadow: 0 1px 0 #090b0d;
+    }
+    .dpad .control { border-radius: 7px; font-size: 16px; }
+    .d-up { grid-area: 1 / 2; }
+    .d-left { grid-area: 2 / 1; }
+    .d-center { grid-area: 2 / 2; border-radius: 50% !important; color: #877c66; }
+    .d-right { grid-area: 2 / 3; }
+    .d-down { grid-area: 3 / 2; }
+    .action-buttons { display: flex; align-items: center; gap: 9px; }
+    .action-button {
+      width: 51px;
+      height: 51px;
+      border-radius: 50%;
+      font-size: 14px;
+      font-weight: 800;
+      color: #e4d7b9;
+    }
+    .action-button b { display: block; font-size: 9px; font-weight: 500; color: #a9a092; }
+    .action-b { border-color: #756040; background: linear-gradient(145deg, #55472f, #252019); }
+    .modal {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: #05070ad9;
+    }
+    .modal[hidden] { display: none; }
+    .battle-card {
+      width: min(100%, 470px);
+      padding: 20px;
+      border: 1px solid #8a7049;
+      background: linear-gradient(145deg, #222326, #11151a);
+      box-shadow: 0 15px 50px #000b;
+      text-align: center;
+    }
+    .battle-title {
+      margin: 0 0 6px;
+      color: var(--gold);
+      font-size: 13px;
+      letter-spacing: .2em;
+    }
+    .enemy-name { margin: 0; font-size: 22px; }
+    .enemy-hp { margin: 6px 0 13px; color: #d3b7a3; font-size: 12px; }
+    .enemy-art {
+      height: 78px;
+      display: grid;
+      place-items: center;
+      color: #e3b897;
+      font-size: 54px;
+      text-shadow: 0 0 22px #bb4937;
+    }
+    .battle-log {
+      min-height: 42px;
+      margin: 12px 0;
+      color: #ddd4c2;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .battle-phase {
+      margin: 0 0 5px;
+      color: var(--gold);
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .battle-power {
+      min-height: 18px;
+      color: #c9c1b2;
+      font-size: 11px;
+    }
+    .timing-meter {
+      position: relative;
+      height: 24px;
+      margin: 12px 4px 5px;
+      border: 1px solid #83785e;
+      background: #111512;
+      box-shadow: inset 0 0 8px #000b;
+    }
+    .timing-track {
+      position: absolute;
+      inset: 5px 5px;
+      background: linear-gradient(90deg, #9d5148 0%, #a28b52 48%, #79b58a 100%);
+      opacity: .8;
+    }
+    .timing-marker {
+      position: absolute;
+      top: 1px;
+      bottom: 1px;
+      left: 50%;
+      width: 4px;
+      transform: translateX(-50%);
+      border: 1px solid #fff4cf;
+      background: #fff0b2;
+      box-shadow: 0 0 9px #ffe38c;
+    }
+    .meter-labels {
+      display: flex;
+      justify-content: space-between;
+      margin: 0 4px;
+      color: #a9a092;
+      font-size: 10px;
+    }
+    .meter-value { margin: 8px 0; color: #ffe8ad; font-size: 12px; }
+    .battle-help { color: #9f9b91; font-size: 11px; }
+    .result-card { max-width: 390px; }
+    .result-card h2 { color: var(--gold); }
+    .restart {
+      margin-top: 10px;
+      padding: 10px 20px;
+      border: 1px solid #88734e;
+      color: #ffe8ad;
+      background: #332c20;
+      cursor: pointer;
+    }
+    @media (min-width: 760px) {
+      .game-shell { padding-top: 24px; }
+      .scene-wrap { min-height: 420px; }
+      #scene { min-height: 420px; }
+      .lower-ui { min-height: 106px; }
+    }
+    @media (max-width: 520px) {
+      .game-shell { padding: max(8px, env(safe-area-inset-top)) 9px max(10px, env(safe-area-inset-bottom)); gap: 8px; }
+      .topbar { min-height: 43px; padding: 7px 10px; }
+      .brand { font-size: 12px; }
+      .floor-label { font-size: 10px; }
+      .statusbar { min-height: 48px; padding: 7px 9px; gap: 7px 12px; font-size: 11px; }
+      .hp-track { width: 76px; }
+      .scene-wrap, #scene { min-height: 230px; }
+      .minimap { top: 7px; right: 7px; width: 116px; padding: 5px; }
+      .minimap-label { margin-bottom: 3px; font-size: 8px; }
+      #minimapCanvas { width: 104px; height: 104px; }
+      .messagebar { min-height: 38px; padding: 8px 10px; font-size: 11px; }
+      .lower-ui { min-height: 115px; align-items: flex-start; }
+      .keyboard-hint { display: none; }
+      .controller { gap: 12px; }
+      .dpad { grid-template-columns: repeat(3, 39px); grid-template-rows: repeat(3, 35px); gap: 3px; }
+      .action-button { width: 45px; height: 45px; }
+      .battle-card { padding: 14px 10px; }
+      .timing-meter { margin-top: 9px; }
+    }
+    @media (max-height: 650px) and (max-width: 760px) {
+      .scene-wrap, #scene { min-height: 190px; }
+      .lower-ui { min-height: 100px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="game-shell">
+    <header class="topbar">
+      <div class="brand">深淵の回廊 <span style="font-size:10px;color:#8f8b80">/ ABYSSAL PASSAGE</span></div>
+      <div class="floor-label" id="floorLabel">地下第一階 — 忘却の迷宮</div>
+    </header>
+    <section class="statusbar" aria-label="プレイヤーの状態">
+      <div class="stat">HP <div class="hp-track"><div id="hpFill" class="hp-fill"></div></div><strong id="hpText">30 / 30</strong></div>
+      <div class="stat">✦ <strong id="soulText">0</strong></div>
+      <div class="stat">残敵 <strong id="enemyText">3</strong></div>
+    </section>
+    <section class="scene-wrap" aria-label="ダンジョン画面">
+      <canvas id="scene" width="480" height="300" aria-label="一人称視点のダンジョン"></canvas>
+      <div class="reticle"></div>
+      <div class="scene-vignette"></div>
+      <div class="minimap" aria-label="ダンジョンの2Dミニマップ">
+        <p class="minimap-label">MAP</p>
+        <canvas id="minimapCanvas" width="160" height="160" aria-label="壁、通路、プレイヤー、魔物、回復薬、階段を表示するミニマップ"></canvas>
+      </div>
+      <div id="battleModal" class="modal" hidden>
+        <div class="battle-card">
+          <p class="battle-title">— ENCOUNTER —</p>
+          <div class="enemy-art" aria-hidden="true">♟</div>
+          <h2 class="enemy-name" id="battleEnemy">迷宮の亡霊</h2>
+          <div class="enemy-hp" id="battleEnemyHp"></div>
+          <div class="battle-phase" id="battlePhase">あなたの攻撃</div>
+          <div class="battle-power" id="battlePower"></div>
+          <div class="timing-meter" role="meter" aria-label="攻撃・ガードのタイミング" aria-valuemin="1" aria-valuemax="10" aria-valuenow="5">
+            <div class="timing-track"></div>
+            <div class="timing-marker" id="timingMarker"></div>
+          </div>
+          <div class="meter-labels"><span>小（1）</span><span>大（10）</span></div>
+          <div class="meter-value" id="meterValue">タイミング：5</div>
+          <div class="battle-log" id="battleLog">バーが最大になる瞬間にAを押そう！</div>
+          <div class="battle-help">Aで攻撃／ガード　・　Bで逃走</div>
+        </div>
+      </div>
+      <div id="resultModal" class="modal" hidden>
+        <div class="battle-card result-card">
+          <p class="battle-title">— THE END —</p>
+          <h2 id="resultTitle">迷宮を踏破した！</h2>
+          <p id="resultText">すべての魔物を退けた。</p>
+          <button id="restartButton" class="restart">もう一度冒険する</button>
+        </div>
+      </div>
+    </section>
+    <div class="messagebar" id="message" aria-live="polite"><span>探索中</span>　十字キー1回で1マス移動。魔物を倒して階段を目指そう。</div>
+    <section class="lower-ui" aria-label="ゲーム操作">
+      <div class="keyboard-hint">
+        <kbd>↑</kbd><kbd>↓</kbd> 1回で1マス移動<br>
+        <kbd>←</kbd><kbd>→</kbd> 1回で90°旋回　<kbd>Space</kbd> 攻撃／ガード　<kbd>Esc</kbd> 逃走
+      </div>
+      <div class="controller">
+        <div class="dpad" aria-label="十字キー">
+          <button class="control d-up" data-direction="forward" aria-label="前進">▲</button>
+          <button class="control d-left" data-direction="turnLeft" aria-label="左旋回">◀</button>
+          <button class="control d-center" aria-label="十字キー">·</button>
+          <button class="control d-right" data-direction="turnRight" aria-label="右旋回">▶</button>
+          <button class="control d-down" data-direction="backward" aria-label="後退">▼</button>
+        </div>
+        <div class="action-buttons">
+          <button class="control action-button" id="buttonA" aria-label="Aボタン">A<b>決定</b></button>
+          <button class="control action-button action-b" id="buttonB" aria-label="Bボタン">B<b>逃走</b></button>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script>
+    (() => {
+      "use strict";
+
+      const mapWidth = 15;
+      const mapHeight = 15;
+      const start = { x: 1.5, y: 1.5, angle: 0 };
+      const stairs = { x: 13.5, y: 13.5 };
+      const floorNames = ["忘却の迷宮", "紅蓮の回廊", "深淵の祭壇"];
+      const healingAmount = 10;
+      const enemyTypes = [
+        { name: "迷宮の亡霊", hp: 2, icon: "♟" },
+        { name: "石喰いの鬼", hp: 3, icon: "♜" },
+        { name: "深淵の番人", hp: 3, icon: "♛" },
+        { name: "闇の狩人", hp: 2, icon: "♞" },
+        { name: "古城の騎士", hp: 3, icon: "♜" }
+      ];
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d", { alpha: false });
+      const minimapCanvas = document.getElementById("minimapCanvas");
+      const minimapCtx = minimapCanvas.getContext("2d", { alpha: false });
+      const hpFill = document.getElementById("hpFill");
+      const hpText = document.getElementById("hpText");
+      const soulText = document.getElementById("soulText");
+      const enemyText = document.getElementById("enemyText");
+      const floorLabel = document.getElementById("floorLabel");
+      const message = document.getElementById("message");
+      const battleModal = document.getElementById("battleModal");
+      const resultModal = document.getElementById("resultModal");
+      const battleLog = document.getElementById("battleLog");
+      const timingMarker = document.getElementById("timingMarker");
+      const meterValue = document.getElementById("meterValue");
+      const battlePhaseLabel = document.getElementById("battlePhase");
+      const battlePower = document.getElementById("battlePower");
+      const timingMeter = document.querySelector(".timing-meter");
+      const actionButton = document.getElementById("buttonA");
+      const actionButtonLabel = actionButton.querySelector("b");
+      let map;
+      let player;
+      let enemies;
+      let items;
+      let explored;
+      let floor;
+      let hp;
+      let souls;
+      let activeEnemy = null;
+      let battlePhase = "attack";
+      let inBattle = false;
+      let ended = false;
+      let lastMessage = "";
+      let lastHit = 0;
+      let frameWidth = 480;
+      let frameHeight = 300;
+
+      function resetGame() {
+        floor = 1;
+        map = generateMap();
+        player = createPlayerAtStart();
+        explored = new Set([getCellKey(player.x, player.y)]);
+        enemies = generateEnemies();
+        items = generateHealingItems();
+        hp = 30;
+        souls = 0;
+        activeEnemy = null;
+        inBattle = false;
+        ended = false;
+        lastHit = 0;
+        actionButtonLabel.textContent = "決定";
+        actionButton.setAttribute("aria-label", "Aボタン：決定");
+        battleModal.hidden = true;
+        resultModal.hidden = true;
+        updateFloorLabel();
+        setMessage("<span>探索中</span>　魔物を倒し、ミニマップの階段を目指そう。");
+        updateStatus();
+      }
+
+      function generateMap() {
+        const cells = Array.from({ length: mapHeight }, () => Array(mapWidth).fill("#"));
+        const stack = [{ x: 1, y: 1 }];
+        cells[1][1] = ".";
+        while (stack.length > 0) {
+          const current = stack[stack.length - 1];
+          const options = [
+            { x: current.x + 2, y: current.y },
+            { x: current.x - 2, y: current.y },
+            { x: current.x, y: current.y + 2 },
+            { x: current.x, y: current.y - 2 }
+          ].filter(next =>
+            next.x > 0 && next.x < mapWidth - 1 &&
+            next.y > 0 && next.y < mapHeight - 1 &&
+            cells[next.y][next.x] === "#"
+          );
+          if (options.length === 0) {
+            stack.pop();
+            continue;
+          }
+          const next = options[Math.floor(Math.random() * options.length)];
+          cells[(current.y + next.y) / 2][(current.x + next.x) / 2] = ".";
+          cells[next.y][next.x] = ".";
+          stack.push(next);
+        }
+        return cells.map(row => row.join(""));
+      }
+
+      function getCellKey(x, y) {
+        return `${Math.floor(x)},${Math.floor(y)}`;
+      }
+
+      function createPlayerAtStart() {
+        const x = Math.floor(start.x);
+        const y = Math.floor(start.y);
+        const directions = [
+          { x: 1, y: 0, angle: 0 },
+          { x: 0, y: 1, angle: Math.PI / 2 },
+          { x: -1, y: 0, angle: Math.PI },
+          { x: 0, y: -1, angle: Math.PI * 1.5 }
+        ];
+        const passage = directions.find(direction => map[y + direction.y]?.[x + direction.x] === ".");
+        return { ...start, angle: passage?.angle ?? start.angle };
+      }
+
+      function generateEnemies() {
+        const candidates = [];
+        for (let y = 1; y < mapHeight - 1; y++) {
+          for (let x = 1; x < mapWidth - 1; x++) {
+            if (map[y][x] !== ".") continue;
+            const fromStart = Math.abs(x - 1) + Math.abs(y - 1);
+            const fromStairs = Math.abs(x - 13) + Math.abs(y - 13);
+            if (fromStart >= 4 && fromStairs >= 4) candidates.push({ x, y });
+          }
+        }
+        const count = floor + 3;
+        const selected = [];
+        while (selected.length < count) {
+          const index = Math.floor(Math.random() * candidates.length);
+          selected.push(candidates.splice(index, 1)[0]);
+        }
+        return selected.map((position, index) => {
+          const type = enemyTypes[(Math.floor(Math.random() * enemyTypes.length) + floor - 1) % enemyTypes.length];
+          const hpBonus = floor === 3 && index === 0 ? 1 : 0;
+          return {
+            x: position.x + 0.5,
+            y: position.y + 0.5,
+            name: type.name,
+            hp: type.hp + hpBonus,
+            maxHp: type.hp + hpBonus,
+            attack: 3 + floor + (type.hp >= 3 ? 1 : 0),
+            guard: floor + 1,
+            icon: type.icon
+          };
+        });
+      }
+
+      function generateHealingItems() {
+        const occupied = new Set([
+          `${start.x - 0.5},${start.y - 0.5}`,
+          `${stairs.x - 0.5},${stairs.y - 0.5}`,
+          ...enemies.map(enemy => `${enemy.x - 0.5},${enemy.y - 0.5}`)
+        ]);
+        const candidates = [];
+        for (let y = 1; y < mapHeight - 1; y++) {
+          for (let x = 1; x < mapWidth - 1; x++) {
+            if (map[y][x] !== "." || occupied.has(`${x},${y}`)) continue;
+            const fromStart = Math.abs(x - 1) + Math.abs(y - 1);
+            if (fromStart >= 3) candidates.push({ x, y });
+          }
+        }
+        const count = 2;
+        const selected = [];
+        while (selected.length < count && candidates.length > 0) {
+          const index = Math.floor(Math.random() * candidates.length);
+          selected.push(candidates.splice(index, 1)[0]);
+        }
+        return selected.map(position => ({
+          x: position.x + 0.5,
+          y: position.y + 0.5,
+          amount: healingAmount
+        }));
+      }
+
+      function updateFloorLabel() {
+        const floorNumber = ["一", "二", "三"][floor - 1];
+        floorLabel.textContent = `地下第${floorNumber}階 — ${floorNames[floor - 1]}`;
+      }
+
+      function setMessage(text) {
+        if (text !== lastMessage) {
+          message.innerHTML = text;
+          lastMessage = text;
+        }
+      }
+
+      function updateStatus() {
+        hpFill.style.width = `${Math.max(0, hp) / 30 * 100}%`;
+        hpText.textContent = `${Math.max(0, hp)} / 30`;
+        soulText.textContent = souls;
+        enemyText.textContent = enemies.length;
+      }
+
+      function isWall(x, y) {
+        const row = map[Math.floor(y)];
+        return !row || row[Math.floor(x)] !== ".";
+      }
+
+      function moveForward(direction) {
+        if (inBattle || ended) return;
+        const nextX = player.x + Math.round(Math.cos(player.angle)) * direction;
+        const nextY = player.y + Math.round(Math.sin(player.angle)) * direction;
+        const enemy = enemies.find(item => Math.hypot(nextX - item.x, nextY - item.y) < 0.46);
+        if (enemy) {
+          beginBattle(enemy);
+          return;
+        }
+        if (isWall(nextX, nextY)) return;
+        player.x = nextX;
+        player.y = nextY;
+        explored.add(getCellKey(player.x, player.y));
+        collectHealingItem();
+        checkExit();
+      }
+
+      function collectHealingItem() {
+        const item = items.find(healing => Math.hypot(player.x - healing.x, player.y - healing.y) < 0.1);
+        if (!item) return;
+        if (hp >= 30) {
+          setMessage("<span>回復薬</span>　HPは満タンだ。");
+          return;
+        }
+        const recovered = Math.min(item.amount, 30 - hp);
+        hp += recovered;
+        items = items.filter(healing => healing !== item);
+        updateStatus();
+        setMessage(`<span>回復薬を入手！</span>　HPが${recovered}回復した。`);
+      }
+
+      function beginBattle(enemy) {
+        inBattle = true;
+        activeEnemy = enemy;
+        battlePhase = "attack";
+        battleModal.hidden = false;
+        battleLog.textContent = "バーが最大になる瞬間にAを押そう！";
+        document.querySelector(".enemy-art").textContent = enemy.icon;
+        document.getElementById("battleEnemy").textContent = enemy.name;
+        updateBattle();
+      }
+
+      function updateBattle() {
+        if (!activeEnemy) return;
+        document.getElementById("battleEnemyHp").textContent =
+          `HP ${activeEnemy.hp} / ${activeEnemy.maxHp}`;
+        if (battlePhase === "attack") {
+          battlePhaseLabel.textContent = "あなたの攻撃";
+          battlePower.textContent = `あなたの攻撃力を決定　／　敵の防御力 ${activeEnemy.guard}`;
+          actionButtonLabel.textContent = "攻撃";
+          actionButton.setAttribute("aria-label", "Aボタン：攻撃");
+        } else {
+          battlePhaseLabel.textContent = `${activeEnemy.name}の攻撃`;
+          battlePower.textContent = `敵の攻撃力 ${activeEnemy.attack}　／　タイミングでガード`;
+          actionButtonLabel.textContent = "ガード";
+          actionButton.setAttribute("aria-label", "Aボタン：ガード");
+        }
+      }
+
+      function fight() {
+        if (!inBattle || !activeEnemy) return;
+        const strength = getTimingStrength(performance.now());
+        if (battlePhase === "attack") {
+          const damage = Math.max(0, strength - activeEnemy.guard);
+          activeEnemy.hp = Math.max(0, activeEnemy.hp - damage);
+          if (activeEnemy.hp <= 0) {
+            const name = activeEnemy.name;
+            enemies = enemies.filter(enemy => enemy !== activeEnemy);
+            activeEnemy = null;
+            inBattle = false;
+            souls += 10;
+            battleModal.hidden = true;
+            actionButtonLabel.textContent = "決定";
+            actionButton.setAttribute("aria-label", "Aボタン：決定");
+            updateStatus();
+            setMessage(`<span>勝利！</span>　${name}を退けた。魂を10手に入れた。`);
+            checkExit();
+            return;
+          }
+          battleLog.textContent = `攻撃力${strength} − 防御力${activeEnemy.guard} ＝ ${damage}ダメージ。`;
+          battlePhase = "guard";
+        } else {
+          const damage = Math.max(0, activeEnemy.attack - strength);
+          hp = Math.max(0, hp - damage);
+          lastHit = performance.now() / 1000;
+          updateStatus();
+          if (hp <= 0) {
+            inBattle = false;
+            activeEnemy = null;
+            battleModal.hidden = true;
+            actionButtonLabel.textContent = "決定";
+            actionButton.setAttribute("aria-label", "Aボタン：決定");
+            showResult(false);
+            return;
+          }
+          battleLog.textContent = `敵の攻撃力${activeEnemy.attack} − ガード力${strength} ＝ ${damage}ダメージ。`;
+          battlePhase = "attack";
+        }
+        updateBattle();
+      }
+
+      function getTimingPosition(timestamp) {
+        const period = Math.max(420, 1000 - (floor - 1) * 220);
+        const cycle = (timestamp % period) / period;
+        return cycle < 0.5 ? cycle * 2 : (1 - cycle) * 2;
+      }
+
+      function getTimingStrength(timestamp) {
+        return 1 + Math.round(getTimingPosition(timestamp) * 9);
+      }
+
+      function updateTimingMeter(timestamp) {
+        if (!inBattle) return;
+        const position = getTimingPosition(timestamp);
+        const strength = getTimingStrength(timestamp);
+        timingMarker.style.left = `${position * 100}%`;
+        meterValue.textContent = `タイミング：${strength}`;
+        timingMeter.setAttribute("aria-valuenow", String(strength));
+      }
+
+      function flee() {
+        if (!inBattle) return;
+        activeEnemy = null;
+        inBattle = false;
+        battleModal.hidden = true;
+        actionButtonLabel.textContent = "決定";
+        actionButton.setAttribute("aria-label", "Aボタン：決定");
+        setMessage("<span>退却</span>　魔物から距離を取った。");
+        moveForward(-1);
+      }
+
+      function checkExit() {
+        if (ended || player.x < 13 || player.y < 13) return;
+        if (enemies.length > 0) {
+          setMessage(`<span>階段</span>　残り${enemies.length}体の魔物を倒すと先へ進める。`);
+          return;
+        }
+        if (floor === 3) {
+          showResult(true);
+          return;
+        }
+        floor += 1;
+        map = generateMap();
+        player = createPlayerAtStart();
+        explored = new Set([getCellKey(player.x, player.y)]);
+        enemies = generateEnemies();
+        items = generateHealingItems();
+        hp = Math.min(30, hp + 5);
+        updateFloorLabel();
+        updateStatus();
+        setMessage(`<span>地下第${["一", "二", "三"][floor - 1]}階</span>　新たな迷宮に足を踏み入れた。HPが少し回復した。`);
+      }
+
+      function showResult(victory) {
+        ended = true;
+        document.getElementById("resultTitle").textContent = victory ? "迷宮を踏破した！" : "力尽きてしまった…";
+        document.getElementById("resultText").textContent = victory
+          ? `地下3階を踏破し、${souls}個の魂を集めた。`
+          : "魂はまだ迷宮に残っている。もう一度挑戦しよう。";
+        resultModal.hidden = false;
+      }
+
+      function turn(amount) {
+        if (inBattle) return;
+        if (ended) return;
+        player.angle = (player.angle + amount + Math.PI * 2) % (Math.PI * 2);
+      }
+
+      function castRay(angle) {
+        const rayDirX = Math.cos(angle);
+        const rayDirY = Math.sin(angle);
+        let mapX = Math.floor(player.x);
+        let mapY = Math.floor(player.y);
+        const deltaDistX = Math.abs(1 / (rayDirX || 0.00001));
+        const deltaDistY = Math.abs(1 / (rayDirY || 0.00001));
+        const stepX = rayDirX < 0 ? -1 : 1;
+        const stepY = rayDirY < 0 ? -1 : 1;
+        let sideDistX = rayDirX < 0 ? (player.x - mapX) * deltaDistX : (mapX + 1 - player.x) * deltaDistX;
+        let sideDistY = rayDirY < 0 ? (player.y - mapY) * deltaDistY : (mapY + 1 - player.y) * deltaDistY;
+        let side = 0;
+        let distance = 0;
+        for (let i = 0; i < 32; i++) {
+          if (sideDistX < sideDistY) {
+            sideDistX += deltaDistX;
+            mapX += stepX;
+            side = 0;
+            distance = sideDistX - deltaDistX;
+          } else {
+            sideDistY += deltaDistY;
+            mapY += stepY;
+            side = 1;
+            distance = sideDistY - deltaDistY;
+          }
+          if (isWall(mapX + 0.5, mapY + 0.5)) break;
+        }
+        return { distance: Math.max(0.01, distance), side, mapX, mapY, rayDirX, rayDirY };
+      }
+
+      function render() {
+        const width = frameWidth;
+        const height = frameHeight;
+        const horizon = Math.floor(height * 0.49);
+        const ceiling = ctx.createLinearGradient(0, 0, 0, horizon);
+        ceiling.addColorStop(0, "#10151d");
+        ceiling.addColorStop(1, "#282820");
+        ctx.fillStyle = ceiling;
+        ctx.fillRect(0, 0, width, horizon);
+        const floor = ctx.createLinearGradient(0, horizon, 0, height);
+        floor.addColorStop(0, "#393327");
+        floor.addColorStop(1, "#111317");
+        ctx.fillStyle = floor;
+        ctx.fillRect(0, horizon, width, height - horizon);
+
+        const fov = Math.PI / 2.9;
+        const zBuffer = new Float32Array(width);
+        for (let x = 0; x < width; x++) {
+          const angle = player.angle - fov / 2 + (x / width) * fov;
+          const ray = castRay(angle);
+          const correctedDistance = ray.distance * Math.cos(angle - player.angle);
+          zBuffer[x] = correctedDistance;
+          const wallHeight = Math.min(height * 1.6, height / correctedDistance);
+          const wallTop = Math.floor(horizon - wallHeight / 2);
+          const wallX = ray.side === 0
+            ? player.y + ray.distance * ray.rayDirY
+            : player.x + ray.distance * ray.rayDirX;
+          const stripe = Math.floor((wallX - Math.floor(wallX)) * 8);
+          const textureShade = stripe === 0 || stripe === 7 ? 0.78 : 1;
+          const sideShade = ray.side === 1 ? 0.72 : 1;
+          const fog = Math.max(0.22, 1 - correctedDistance / 11);
+          const block = ((ray.mapX + ray.mapY) % 3) * 3;
+          const red = Math.floor((112 + block) * textureShade * sideShade * fog);
+          const green = Math.floor((105 + block) * textureShade * sideShade * fog);
+          const blue = Math.floor((86 + block) * textureShade * sideShade * fog);
+          ctx.fillStyle = `rgb(${red},${green},${blue})`;
+          ctx.fillRect(x, wallTop, 1, wallHeight);
+          if (stripe === 0 || stripe === 7) {
+            ctx.fillStyle = `rgba(15,13,12,${0.18 * fog})`;
+            ctx.fillRect(x, wallTop, 1, wallHeight);
+          }
+          const torchBand = Math.abs((wallX % 4) - 0.5);
+          if (torchBand < 0.05 && correctedDistance < 5) {
+            ctx.fillStyle = `rgba(225,147,65,${0.16 / correctedDistance})`;
+            ctx.fillRect(x, wallTop, 1, wallHeight);
+          }
+        }
+
+        const visibleEnemies = enemies
+          .map(enemy => ({ ...enemy, distance: Math.hypot(enemy.x - player.x, enemy.y - player.y) }))
+          .sort((a, b) => b.distance - a.distance);
+        for (const enemy of visibleEnemies) {
+          const dx = enemy.x - player.x;
+          const dy = enemy.y - player.y;
+          const angle = Math.atan2(dy, dx);
+          let relative = angle - player.angle;
+          while (relative > Math.PI) relative -= Math.PI * 2;
+          while (relative < -Math.PI) relative += Math.PI * 2;
+          if (Math.abs(relative) > fov / 2 + 0.18 || enemy.distance < 0.25) continue;
+          const screenX = Math.floor(width / 2 + Math.tan(relative) / Math.tan(fov / 2) * width / 2);
+          const size = Math.min(height * 0.7, height / enemy.distance * 0.58);
+          const left = screenX - size / 2;
+          if (zBuffer[Math.max(0, Math.min(width - 1, screenX))] < enemy.distance - 0.2) continue;
+          const baseY = horizon + size * 0.52;
+          const glow = ctx.createRadialGradient(screenX, baseY - size * 0.53, 1, screenX, baseY - size * 0.5, size * 0.62);
+          glow.addColorStop(0, "#bd6b47aa");
+          glow.addColorStop(1, "#813c2a00");
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(screenX, baseY - size * 0.5, size * 0.62, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#19171a";
+          ctx.beginPath();
+          ctx.moveTo(screenX, baseY - size);
+          ctx.lineTo(left + size * 0.12, baseY - size * 0.2);
+          ctx.quadraticCurveTo(screenX, baseY + size * 0.08, left + size * 0.88, baseY - size * 0.2);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = "#a8533e";
+          ctx.fillRect(screenX - size * 0.2, baseY - size * 0.69, size * 0.12, size * 0.045);
+          ctx.fillRect(screenX + size * 0.08, baseY - size * 0.69, size * 0.12, size * 0.045);
+          ctx.fillStyle = "#d27d51";
+          ctx.fillRect(screenX - size * 0.18, baseY - size * 0.675, size * 0.08, size * 0.018);
+          ctx.fillRect(screenX + size * 0.1, baseY - size * 0.675, size * 0.08, size * 0.018);
+        }
+
+        for (const item of items) {
+          const dx = item.x - player.x;
+          const dy = item.y - player.y;
+          const distance = Math.hypot(dx, dy);
+          let relative = Math.atan2(dy, dx) - player.angle;
+          while (relative > Math.PI) relative -= Math.PI * 2;
+          while (relative < -Math.PI) relative += Math.PI * 2;
+          if (Math.abs(relative) > fov / 2 || distance < 0.25) continue;
+          const screenX = Math.floor(width / 2 + Math.tan(relative) / Math.tan(fov / 2) * width / 2);
+          const depth = distance * Math.cos(relative);
+          if (zBuffer[Math.max(0, Math.min(width - 1, screenX))] < depth - 0.2) continue;
+          const size = Math.min(height * 0.2, height / distance * 0.19);
+          const centerY = horizon + size * 0.35;
+          ctx.shadowColor = "#70e8bb";
+          ctx.shadowBlur = size * 0.8;
+          ctx.fillStyle = "#75dbab";
+          ctx.beginPath();
+          ctx.moveTo(screenX, centerY - size * 0.65);
+          ctx.lineTo(screenX + size * 0.36, centerY - size * 0.15);
+          ctx.lineTo(screenX + size * 0.2, centerY + size * 0.5);
+          ctx.lineTo(screenX - size * 0.2, centerY + size * 0.5);
+          ctx.lineTo(screenX - size * 0.36, centerY - size * 0.15);
+          ctx.closePath();
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = "#d8ffe8";
+          ctx.fillRect(screenX - size * 0.045, centerY - size * 0.38, size * 0.09, size * 0.48);
+          ctx.fillRect(screenX - size * 0.2, centerY - size * 0.18, size * 0.4, size * 0.09);
+        }
+
+        const stairsDx = stairs.x - player.x;
+        const stairsDy = stairs.y - player.y;
+        const stairsDistance = Math.hypot(stairsDx, stairsDy);
+        let stairsRelative = Math.atan2(stairsDy, stairsDx) - player.angle;
+        while (stairsRelative > Math.PI) stairsRelative -= Math.PI * 2;
+        while (stairsRelative < -Math.PI) stairsRelative += Math.PI * 2;
+        if (Math.abs(stairsRelative) <= fov / 2 && stairsDistance > 0.25) {
+          const stairsScreenX = Math.floor(width / 2 + Math.tan(stairsRelative) / Math.tan(fov / 2) * width / 2);
+          const depth = stairsDistance * Math.cos(stairsRelative);
+          if (zBuffer[Math.max(0, Math.min(width - 1, stairsScreenX))] > depth - 0.2) {
+            const size = Math.min(height * 0.22, height / stairsDistance * 0.24);
+            const baseY = horizon + size * 0.56;
+            ctx.fillStyle = "#e5bd70";
+            ctx.shadowColor = "#e5a84c";
+            ctx.shadowBlur = size * 0.5;
+            for (let step = 0; step < 3; step++) {
+              const stepWidth = size * (0.78 - step * 0.2);
+              ctx.fillRect(stairsScreenX - stepWidth / 2, baseY - size * (0.55 - step * 0.18), stepWidth, Math.max(1, size * 0.08));
+            }
+            ctx.shadowBlur = 0;
+          }
+        }
+
+        if (performance.now() / 1000 - lastHit < 0.18) {
+          ctx.fillStyle = "rgba(190,35,25,0.19)";
+          ctx.fillRect(0, 0, width, height);
+        }
+        const vignette = ctx.createRadialGradient(width / 2, height / 2, height * 0.18, width / 2, height / 2, height * 0.8);
+        vignette.addColorStop(0, "transparent");
+        vignette.addColorStop(1, "rgba(0,0,0,.4)");
+        ctx.fillStyle = vignette;
+        ctx.fillRect(0, 0, width, height);
+        renderMinimap();
+      }
+
+      function renderMinimap() {
+        const cellSize = minimapCanvas.width / map[0].length;
+        minimapCtx.fillStyle = "#101410";
+        minimapCtx.fillRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+
+        map.forEach((row, y) => {
+          for (let x = 0; x < row.length; x++) {
+            if (!explored.has(`${x},${y}`)) continue;
+            minimapCtx.fillStyle = row[x] === "#" ? "#72674f" : "#1d2926";
+            minimapCtx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+            if (row[x] === "#") {
+              minimapCtx.fillStyle = "#8c7d5e";
+              minimapCtx.fillRect(x * cellSize, y * cellSize, cellSize, 1);
+            }
+          }
+        });
+
+        enemies.forEach(enemy => {
+          if (!explored.has(getCellKey(enemy.x, enemy.y))) return;
+          minimapCtx.fillStyle = "#e66e55";
+          minimapCtx.beginPath();
+          minimapCtx.arc(enemy.x * cellSize, enemy.y * cellSize, cellSize * 0.27, 0, Math.PI * 2);
+          minimapCtx.fill();
+        });
+
+        items.forEach(item => {
+          if (!explored.has(getCellKey(item.x, item.y))) return;
+          minimapCtx.fillStyle = "#75dbab";
+          minimapCtx.fillRect(
+            item.x * cellSize - cellSize * 0.2,
+            item.y * cellSize - cellSize * 0.2,
+            cellSize * 0.4,
+            cellSize * 0.4
+          );
+        });
+
+        const stairsX = stairs.x * cellSize;
+        const stairsY = stairs.y * cellSize;
+        if (explored.has(getCellKey(stairs.x, stairs.y))) {
+          minimapCtx.fillStyle = "#ffe08a";
+          minimapCtx.beginPath();
+          minimapCtx.moveTo(stairsX, stairsY - cellSize * 0.42);
+          minimapCtx.lineTo(stairsX + cellSize * 0.42, stairsY);
+          minimapCtx.lineTo(stairsX, stairsY + cellSize * 0.42);
+          minimapCtx.lineTo(stairsX - cellSize * 0.42, stairsY);
+          minimapCtx.closePath();
+          minimapCtx.fill();
+        }
+
+        const playerX = player.x * cellSize;
+        const playerY = player.y * cellSize;
+        const directionX = Math.cos(player.angle) * cellSize * 0.42;
+        const directionY = Math.sin(player.angle) * cellSize * 0.42;
+        const sideX = -Math.sin(player.angle) * cellSize * 0.27;
+        const sideY = Math.cos(player.angle) * cellSize * 0.27;
+        minimapCtx.fillStyle = "#ffe6a3";
+        minimapCtx.beginPath();
+        minimapCtx.moveTo(playerX + directionX, playerY + directionY);
+        minimapCtx.lineTo(playerX - directionX * 0.65 + sideX, playerY - directionY * 0.65 + sideY);
+        minimapCtx.lineTo(playerX - directionX * 0.65 - sideX, playerY - directionY * 0.65 - sideY);
+        minimapCtx.closePath();
+        minimapCtx.fill();
+      }
+
+      function resizeCanvas() {
+        const rect = canvas.getBoundingClientRect();
+        const ratio = Math.min(window.devicePixelRatio || 1, 1.5);
+        frameWidth = Math.max(240, Math.floor(rect.width * ratio));
+        frameHeight = Math.max(180, Math.floor(rect.height * ratio));
+        canvas.width = frameWidth;
+        canvas.height = frameHeight;
+      }
+
+      function loop(timestamp) {
+        updateTimingMeter(timestamp);
+        render();
+        requestAnimationFrame(loop);
+      }
+
+      function activateA() {
+        if (inBattle) fight();
+      }
+      function activateB() {
+        if (inBattle) flee();
+      }
+
+      document.addEventListener("keydown", event => {
+        const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(event.key)) event.preventDefault();
+        if (event.repeat && [" ", "Escape", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "w", "a", "s", "d", "Enter"].includes(key)) return;
+        if (key === " " || key === "Enter") activateA();
+        if (key === "Escape") activateB();
+        if (key === "ArrowUp" || key === "w") moveForward(1);
+        if (key === "ArrowDown" || key === "s") moveForward(-1);
+        if (key === "ArrowLeft" || key === "a") turn(-Math.PI / 2);
+        if (key === "ArrowRight" || key === "d") turn(Math.PI / 2);
+      });
+
+      document.querySelectorAll("[data-direction]").forEach(button => {
+        const direction = button.dataset.direction;
+        button.addEventListener("pointerdown", event => {
+          event.preventDefault();
+          button.setPointerCapture(event.pointerId);
+          button.classList.add("pressed");
+          if (direction === "turnLeft" || direction === "turnRight") {
+            turn(direction === "turnLeft" ? -Math.PI / 2 : Math.PI / 2);
+          } else {
+            moveForward(direction === "forward" ? 1 : -1);
+          }
+        });
+        const release = () => {
+          button.classList.remove("pressed");
+        };
+        button.addEventListener("pointerup", release);
+        button.addEventListener("pointercancel", release);
+        button.addEventListener("lostpointercapture", release);
+      });
+      document.getElementById("buttonA").addEventListener("click", activateA);
+      document.getElementById("buttonB").addEventListener("click", activateB);
+      document.getElementById("restartButton").addEventListener("click", resetGame);
+      window.addEventListener("resize", resizeCanvas);
+      window.addEventListener("orientationchange", resizeCanvas);
+
+      resetGame();
+      resizeCanvas();
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>
