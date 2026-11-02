@@ -129,9 +129,18 @@
     }
     .minimap-label {
       margin: 0 0 5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       color: #d7c89f;
       font-size: 9px;
       letter-spacing: .18em;
+    }
+    .minimap-legend {
+      color: #72e8ff;
+      font-size: 8px;
+      letter-spacing: 0;
+      white-space: nowrap;
     }
     #minimapCanvas {
       display: block;
@@ -352,8 +361,8 @@
       <div class="reticle"></div>
       <div class="scene-vignette"></div>
       <div class="minimap" aria-label="ダンジョンの2Dミニマップ">
-        <p class="minimap-label">MAP</p>
-        <canvas id="minimapCanvas" width="160" height="160" aria-label="壁、通路、プレイヤー、魔物、回復薬、階段を表示するミニマップ"></canvas>
+        <p class="minimap-label"><span>MAP</span><span class="minimap-legend"><span aria-hidden="true">▲</span> 自分の向き</span></p>
+        <canvas id="minimapCanvas" width="160" height="160" aria-label="壁、通路、プレイヤーの位置と向き、魔物、回復薬、階段を表示するミニマップ"></canvas>
       </div>
       <div id="battleModal" class="modal" hidden>
         <div class="battle-card">
@@ -414,11 +423,11 @@
       const floorNames = ["忘却の迷宮", "紅蓮の回廊", "深淵の祭壇"];
       const healingAmount = 10;
       const enemyTypes = [
-        { name: "迷宮の亡霊", hp: 2, icon: "♟" },
-        { name: "石喰いの鬼", hp: 3, icon: "♜" },
-        { name: "深淵の番人", hp: 3, icon: "♛" },
-        { name: "闇の狩人", hp: 2, icon: "♞" },
-        { name: "古城の騎士", hp: 3, icon: "♜" }
+        { name: "迷宮の亡霊", hp: 7, icon: "♟" },
+        { name: "石喰いの鬼", hp: 9, icon: "♜" },
+        { name: "深淵の番人", hp: 9, icon: "♛" },
+        { name: "闇の狩人", hp: 7, icon: "♞" },
+        { name: "古城の騎士", hp: 10, icon: "♜" }
       ];
       const canvas = document.getElementById("scene");
       const ctx = canvas.getContext("2d", { alpha: false });
@@ -534,7 +543,7 @@
             if (fromStart >= 4 && fromStairs >= 4) candidates.push({ x, y });
           }
         }
-        const count = floor + 3;
+        const count = floor + 6;
         const selected = [];
         while (selected.length < count) {
           const index = Math.floor(Math.random() * candidates.length);
@@ -542,7 +551,7 @@
         }
         return selected.map((position, index) => {
           const type = enemyTypes[(Math.floor(Math.random() * enemyTypes.length) + floor - 1) % enemyTypes.length];
-          const hpBonus = floor === 3 && index === 0 ? 1 : 0;
+          const hpBonus = floor - 1 + (floor === 3 && index === 0 ? 1 : 0);
           return {
             x: position.x + 0.5,
             y: position.y + 0.5,
@@ -550,7 +559,7 @@
             hp: type.hp + hpBonus,
             maxHp: type.hp + hpBonus,
             attack: 3 + floor + (type.hp >= 3 ? 1 : 0),
-            guard: floor + 1,
+            guard: floor + 2,
             icon: type.icon
           };
         });
@@ -1007,17 +1016,49 @@
 
         const playerX = player.x * cellSize;
         const playerY = player.y * cellSize;
-        const directionX = Math.cos(player.angle) * cellSize * 0.42;
-        const directionY = Math.sin(player.angle) * cellSize * 0.42;
-        const sideX = -Math.sin(player.angle) * cellSize * 0.27;
-        const sideY = Math.cos(player.angle) * cellSize * 0.27;
-        minimapCtx.fillStyle = "#ffe6a3";
+        minimapCtx.save();
+        minimapCtx.translate(playerX, playerY);
+        minimapCtx.rotate(player.angle);
+
+        minimapCtx.fillStyle = "rgba(54, 211, 240, 0.2)";
         minimapCtx.beginPath();
-        minimapCtx.moveTo(playerX + directionX, playerY + directionY);
-        minimapCtx.lineTo(playerX - directionX * 0.65 + sideX, playerY - directionY * 0.65 + sideY);
-        minimapCtx.lineTo(playerX - directionX * 0.65 - sideX, playerY - directionY * 0.65 - sideY);
+        minimapCtx.moveTo(0, 0);
+        minimapCtx.lineTo(cellSize * 1.65, -cellSize * 0.55);
+        minimapCtx.lineTo(cellSize * 1.65, cellSize * 0.55);
         minimapCtx.closePath();
         minimapCtx.fill();
+
+        minimapCtx.strokeStyle = "#061216";
+        minimapCtx.lineWidth = cellSize * 0.34;
+        minimapCtx.lineCap = "round";
+        minimapCtx.beginPath();
+        minimapCtx.moveTo(0, 0);
+        minimapCtx.lineTo(cellSize * 1.18, 0);
+        minimapCtx.stroke();
+        minimapCtx.strokeStyle = "#72e8ff";
+        minimapCtx.lineWidth = cellSize * 0.2;
+        minimapCtx.stroke();
+
+        minimapCtx.fillStyle = "#72e8ff";
+        minimapCtx.strokeStyle = "#061216";
+        minimapCtx.lineWidth = cellSize * 0.12;
+        minimapCtx.beginPath();
+        minimapCtx.moveTo(cellSize * 1.65, 0);
+        minimapCtx.lineTo(cellSize * 0.92, -cellSize * 0.43);
+        minimapCtx.lineTo(cellSize * 0.92, cellSize * 0.43);
+        minimapCtx.closePath();
+        minimapCtx.fill();
+        minimapCtx.stroke();
+
+        minimapCtx.fillStyle = "#061216";
+        minimapCtx.beginPath();
+        minimapCtx.arc(0, 0, cellSize * 0.48, 0, Math.PI * 2);
+        minimapCtx.fill();
+        minimapCtx.fillStyle = "#fff4d1";
+        minimapCtx.beginPath();
+        minimapCtx.arc(0, 0, cellSize * 0.3, 0, Math.PI * 2);
+        minimapCtx.fill();
+        minimapCtx.restore();
       }
 
       function resizeCanvas() {
